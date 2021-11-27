@@ -2,7 +2,7 @@
 name = "cargo-mini-repo"
 version = "0.2.2"
 authors = ["k.bagrov <k.bagrov@g.nsu.ru>"]
-edition = "2018"
+edition = "2021"
 publish = ["local"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
