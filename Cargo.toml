@@ -19,5 +19,3 @@ thiserror = "1.0"
 semver = { version = "0.10", features = ["serde"] }
 sha2 = "0.9"
 hex = "0.4"
-
-# self_ref = { version = "0.1", package = "cargo-mini-repo", registry = "local" }
