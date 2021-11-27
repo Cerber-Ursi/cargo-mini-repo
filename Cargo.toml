@@ -1,0 +1,16 @@
+[package]
+name = "cargo-mini-repo"
+version = "0.1.0"
+authors = ["k.bagrov <k.bagrov@g.nsu.ru>"]
+edition = "2018"
+publish = ["local"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+git2 = "0.13"
+rouille = "3.0"
+log = "0.4"
+simplelog = "0.9"
+
+self_ref = { version = "0.1", package = "cargo_mini_repo", registry = "local" }
