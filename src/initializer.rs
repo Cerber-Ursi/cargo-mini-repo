@@ -21,7 +21,7 @@ pub fn init(cfg: crate::Config) -> Result<(), InitError> {
 
     git2::Repository::init_opts(
         cfg.bare_repo_root(),
-        &git2::RepositoryInitOptions::new()
+        git2::RepositoryInitOptions::new()
             .bare(true)
             .initial_head("master"),
     )
@@ -29,7 +29,7 @@ pub fn init(cfg: crate::Config) -> Result<(), InitError> {
 
     let bare_root = std::fs::canonicalize(cfg.bare_repo_root())?;
     let bare_url = bare_root.to_str().ok_or(InitError::NonUTF8BarePath)?;
-    let mut repo = if let Ok(dir) = std::fs::File::open(cfg.repo_root()) {
+    let repo = if let Ok(dir) = std::fs::File::open(cfg.repo_root()) {
         if dir.metadata().expect("metadata").is_dir() {
             let repo = git2::Repository::open(cfg.repo_root()).context("Open repo")?;
             repo.remote_set_url("origin", bare_url)
@@ -51,7 +51,7 @@ pub fn init(cfg: crate::Config) -> Result<(), InitError> {
 }}"#,
         cfg.port()
     )?;
-    crate::git::push_all(&mut repo)?;
+    crate::git::commit_and_push(&repo, &[])?;
 
     Ok(())
 }

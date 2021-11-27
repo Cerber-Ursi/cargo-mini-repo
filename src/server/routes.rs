@@ -67,7 +67,7 @@ fn do_publish(cfg: &RuntimeConfig, req: &Request) -> Result<Response, PublishErr
         .context("Open file for crate data")?;
     writeln!(&crate_file, "{}", crate_info).context("Append crate data")?;
 
-    crate::git::push_all(&mut cfg.lock_repo())?;
+    crate::git::push_existing(&cfg.lock_repo())?;
 
     Ok(Response::text(
         r#"{"warnings":{"invalid_categories":[],"invalid_badges":[],"other":[]}}"#,

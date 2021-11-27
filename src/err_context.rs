@@ -9,7 +9,7 @@ pub struct ErrWithContext<E: StdError + 'static> {
 
 impl<E: StdError> std::fmt::Display for ErrWithContext<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.context.fmt(f)
+        write!(f, "Context: {}", self.context)
     }
 }
 

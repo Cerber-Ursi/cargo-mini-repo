@@ -1,16 +1,8 @@
 use crate::err_context::ErrContext;
 
-pub fn push_all(
-    repo: &mut git2::Repository,
+pub fn push_existing(
+    repo: &git2::Repository,
 ) -> Result<(), crate::err_context::ErrWithContext<git2::Error>> {
-    let mut index = repo.index().context("Get index")?;
-    index
-        .add_all(&["*"], git2::IndexAddOption::DEFAULT, None)
-        .context("Add path")?;
-    index.write().context("Write index")?;
-    let mut origin = repo.find_remote("origin").context("Get remote origin")?;
-
-    let sig = repo.signature().context("Get repo signature")?;
     let master = repo
         .find_branch("master", git2::BranchType::Remote)
         .context("Local master branch")?
@@ -26,6 +18,23 @@ pub fn push_all(
         None => [].into(),
     };
 
+    commit_and_push(repo, &*parents)
+}
+
+pub fn commit_and_push(
+    repo: &git2::Repository,
+    parents: &[&git2::Commit],
+) -> Result<(), crate::err_context::ErrWithContext<git2::Error>> {
+    let mut origin = repo.find_remote("origin").context("Get remote origin")?;
+
+    let mut index = repo.index().context("Get index")?;
+    index
+        .add_all(&["*"], git2::IndexAddOption::DEFAULT, None)
+        .context("Add path")?;
+    index.write().context("Write index")?;
+
+    let sig = repo.signature().context("Get repo signature")?;
+
     repo.commit(
         Some("HEAD"),
         &sig,
@@ -34,11 +43,10 @@ pub fn push_all(
         &repo
             .find_tree(index.write_tree().context("Write index tree")?)
             .context("Find index tree")?,
-        &*parents,
+        parents,
     )
     .context("Commit")?;
 
-    // FIXME: use push_update_reference callback, as recommended
     origin
         .push(&["refs/heads/master"], None)
         .context("Push to origin")?;

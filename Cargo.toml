@@ -1,7 +1,7 @@
 [package]
 name = "cargo-mini-repo"
-version = "0.2.2"
-authors = ["k.bagrov <k.bagrov@g.nsu.ru>"]
+version = "0.2.3"
+authors = ["Cerber Ursi <dev+rust@cerbe.ru>"]
 edition = "2021"
 publish = ["local"]
 
