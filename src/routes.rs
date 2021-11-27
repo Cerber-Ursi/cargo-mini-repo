@@ -40,16 +40,15 @@ fn do_publish(cfg: &Config, req: &Request) -> Result<Response, PublishError> {
     data.read_exact(&mut tar).context("Read tarball")?;
     let checksum = hex::encode(sha2::Sha256::digest(&tar));
 
-    let tarball_path = cfg.crates_root().join(&crate_info.name);
+    let tarball_path = cfg
+        .crates_root()
+        .join(&crate_info.name)
+        .join(crate_info.vers.to_string());
     create_dir_all(&tarball_path).context("Create dir for tarball")?;
-    File::create(
-        tarball_path
-            .join(crate_info.vers.to_string())
-            .join("archive.crate"),
-    )
-    .context("Create file for tarball")?
-    .write_all(&tar)
-    .context("Write tarball")?;
+    File::create(tarball_path.join("archive.crate"))
+        .context("Create file for tarball")?
+        .write_all(&tar)
+        .context("Write tarball")?;
 
     let crate_info = crate::helpers::crate_to_package(crate_info, checksum);
     let crate_name = crate_info.name.to_lowercase();
@@ -120,7 +119,11 @@ pub fn publish(cfg: &Config, req: &Request) -> Response {
 }
 
 pub fn download(cfg: &Config, req: &Request) -> Response {
-    if let Ok(file) = File::open(dbg!(cfg.crates_root().join(req.url()).join("archive.crate"))) {
+    if let Ok(file) = File::open(dbg!(cfg
+        .crates_root()
+        .join(req.url())
+        .join("archive.crate")))
+    {
         Response::from_file("application/tar", file)
     } else {
         Response::text("Crate not found").with_status_code(404)
@@ -132,5 +135,6 @@ pub fn unknown() -> Response {
 }
 
 fn error(text: impl std::fmt::Display) -> Response {
+    log::error!("{}", text);
     Response::text(format!(r#"{{"errors":[{{"detail":"{}"}}]}}"#, text))
 }
