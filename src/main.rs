@@ -25,12 +25,21 @@ struct Args {
 }
 
 #[derive(StructOpt)]
-#[structopt(about = "Mini-repository for Cargo, intended for local usage")]
-enum Command {
+enum RawCommand {
     /// Initialize the local repository, according to the provided configuration
     Init(Args),
     /// Launch the repository server, listening on localhost
     Start(Args),
+}
+
+#[derive(StructOpt)]
+#[structopt(about = "Mini-repository for Cargo, intended for local usage")]
+enum Command {
+    #[structopt(flatten)]
+    Raw(RawCommand),
+    /// Recursive, to be used from Cargo itself.
+    #[structopt(name = "mini-repo")]
+    MiniRepo(RawCommand),
 }
 
 fn launch<E: Into<CommandError>>(
@@ -45,9 +54,13 @@ fn launch<E: Into<CommandError>>(
 }
 
 fn main() {
-    if let Err(error) = match Command::from_args() {
-        Command::Init(args) => launch(args, cargo_mini_repo::init),
-        Command::Start(args) => launch(args, cargo_mini_repo::start),
+    let cmd = match Command::from_args() {
+        Command::Raw(cmd) => cmd,
+        Command::MiniRepo(cmd) => cmd,
+    };
+    if let Err(error) = match cmd {
+        RawCommand::Init(args) => launch(args, cargo_mini_repo::init),
+        RawCommand::Start(args) => launch(args, cargo_mini_repo::start),
     } {
         clap::Error::with_description(
             &cargo_mini_repo::traceback(&error),
