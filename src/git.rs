@@ -4,7 +4,7 @@ pub fn push_existing(
     repo: &git2::Repository,
 ) -> Result<(), crate::err_context::ErrWithContext<git2::Error>> {
     let master = repo
-        .find_branch("master", git2::BranchType::Remote)
+        .find_branch("master", git2::BranchType::Local)
         .context("Local master branch")?
         .into_reference()
         .target()
