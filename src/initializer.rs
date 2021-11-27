@@ -19,11 +19,15 @@ pub enum InitError {
 pub fn init(cfg: crate::Config) -> Result<(), InitError> {
     std::fs::create_dir_all(cfg.crates_root())?;
 
+    git2::Repository::init_opts(
+        cfg.bare_repo_root(),
+        &git2::RepositoryInitOptions::new()
+            .bare(true)
+            .initial_head("master"),
+    )
+    .context("Init bare")?;
+
     let bare_root = std::fs::canonicalize(cfg.bare_repo_root())?;
-
-    git2::Repository::init_opts(&bare_root, &git2::RepositoryInitOptions::new().bare(true))
-        .context("Init bare")?;
-
     let bare_url = bare_root.to_str().ok_or(InitError::NonUTF8BarePath)?;
     let mut repo = if let Ok(dir) = std::fs::File::open(cfg.repo_root()) {
         if dir.metadata().expect("metadata").is_dir() {

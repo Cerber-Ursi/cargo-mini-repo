@@ -8,8 +8,24 @@ pub fn push_all(
         .add_all(&["*"], git2::IndexAddOption::DEFAULT, None)
         .context("Add path")?;
     index.write().context("Write index")?;
+    let mut origin = repo.find_remote("origin").context("Get remote origin")?;
 
     let sig = repo.signature().context("Get repo signature")?;
+    let master = repo
+        .find_branch("master", git2::BranchType::Remote)
+        .context("Local master branch")?
+        .into_reference()
+        .target()
+        .map(|oid| repo.find_commit(oid))
+        .transpose()
+        .context("Find commit for master")?;
+
+    // FIXME: that's rather strange to see, but otherwise we run into lifetime problems
+    let parents: Box<[&_]> = match master {
+        Some(ref commit) => [commit].into(),
+        None => [].into(),
+    };
+
     repo.commit(
         Some("HEAD"),
         &sig,
@@ -18,20 +34,12 @@ pub fn push_all(
         &repo
             .find_tree(index.write_tree().context("Write index tree")?)
             .context("Find index tree")?,
-        &[&repo
-            .find_commit(
-                repo.head()
-                    .context("Get HEAD")?
-                    .target()
-                    .expect("No HEAD ref in repo"),
-            )
-            .context("Get HEAD commit")?],
+        &*parents,
     )
     .context("Commit")?;
 
     // FIXME: use push_update_reference callback, as recommended
-    repo.find_remote("origin")
-        .context("Get remote origin")?
+    origin
         .push(&["refs/heads/master"], None)
         .context("Push to origin")?;
 
