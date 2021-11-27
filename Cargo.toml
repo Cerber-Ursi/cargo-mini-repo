@@ -1,6 +1,6 @@
 [package]
 name = "cargo-mini-repo"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["k.bagrov <k.bagrov@g.nsu.ru>"]
 edition = "2018"
 publish = ["local"]
@@ -19,3 +19,4 @@ thiserror = "1.0"
 semver = { version = "0.10", features = ["serde"] }
 sha2 = "0.9"
 hex = "0.4"
+structopt = "0.3"

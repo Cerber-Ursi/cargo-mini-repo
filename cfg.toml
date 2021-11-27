@@ -1,3 +1,4 @@
 port = 8888
+bare_repo = "./tmp/bare"
 repo = "./tmp/tmp"
 crates = "./tmp/crates"

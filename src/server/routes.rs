@@ -8,11 +8,9 @@ use rouille::{Request, Response};
 use sha2::Digest;
 use thiserror::Error;
 
-use crate::{
-    config::Config,
-    err_context::{ErrContext, ErrWithContext},
-    helpers::PublishedCrate,
-};
+use crate::{config::RuntimeConfig, err_context::{ErrContext, ErrWithContext}};
+
+use super::helpers::PublishedCrate;
 
 #[derive(Debug, Error)]
 enum PublishError {
@@ -26,7 +24,7 @@ enum PublishError {
     Git(#[from] ErrWithContext<git2::Error>),
 }
 
-fn do_publish(cfg: &Config, req: &Request) -> Result<Response, PublishError> {
+fn do_publish(cfg: &RuntimeConfig, req: &Request) -> Result<Response, PublishError> {
     let mut data = req.data().ok_or(PublishError::NoData)?;
     let mut size = [0u8; 4];
     data.read_exact(&mut size).context("Read JSON size")?;
@@ -50,7 +48,7 @@ fn do_publish(cfg: &Config, req: &Request) -> Result<Response, PublishError> {
         .write_all(&tar)
         .context("Write tarball")?;
 
-    let crate_info = crate::helpers::crate_to_package(crate_info, checksum);
+    let crate_info = super::helpers::crate_to_package(crate_info, checksum);
     let crate_name = crate_info.name.to_lowercase();
     let crate_path = match crate_name.len() {
         1 => Path::new("1").to_path_buf(),
@@ -107,18 +105,14 @@ fn do_publish(cfg: &Config, req: &Request) -> Result<Response, PublishError> {
     ))
 }
 
-pub fn publish(cfg: &Config, req: &Request) -> Response {
+pub fn publish(cfg: &RuntimeConfig, req: &Request) -> Response {
     match do_publish(cfg, req) {
         Ok(res) => res,
-        Err(err) => {
-            let mut text = Vec::new();
-            crate::traceback(&mut text, &err);
-            error(String::from_utf8_lossy(&text))
-        }
+        Err(err) => error(crate::traceback(&err)),
     }
 }
 
-pub fn download(cfg: &Config, req: &Request) -> Response {
+pub fn download(cfg: &RuntimeConfig, req: &Request) -> Response {
     if let Ok(file) = File::open(
         cfg.crates_root()
             .join(req.url().trim_start_matches('/'))
