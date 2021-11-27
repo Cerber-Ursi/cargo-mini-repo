@@ -45,7 +45,7 @@ fn do_publish(cfg: &Config, req: &Request) -> Result<Response, PublishError> {
     File::create(
         tarball_path
             .join(crate_info.vers.to_string())
-            .with_extension("crate"),
+            .join("archive.crate"),
     )
     .context("Create file for tarball")?
     .write_all(&tar)
@@ -120,10 +120,10 @@ pub fn publish(cfg: &Config, req: &Request) -> Response {
 }
 
 pub fn download(cfg: &Config, req: &Request) -> Response {
-    if let Ok(file) = File::open(cfg.crates_root().join(req.url()).with_extension("crate")) {
+    if let Ok(file) = File::open(dbg!(cfg.crates_root().join(req.url()).join("archive.crate"))) {
         Response::from_file("application/tar", file)
     } else {
-        error("Crate not found")
+        Response::text("Crate not found").with_status_code(404)
     }
 }
 
