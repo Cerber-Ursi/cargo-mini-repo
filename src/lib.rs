@@ -2,6 +2,7 @@ mod config;
 mod server;
 mod initializer;
 mod err_context;
+mod git;
 
 use thiserror::Error;
 

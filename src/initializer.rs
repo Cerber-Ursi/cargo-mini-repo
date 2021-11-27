@@ -1,4 +1,8 @@
+use std::io::Write;
+
 use thiserror::Error;
+
+use crate::err_context::ErrContext;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -9,7 +13,7 @@ pub enum InitError {
     #[error("File already exists on index path")]
     IndexIsFile,
     #[error("Git error while creating repository for index")]
-    Git(#[from] git2::Error),
+    Git(#[from] crate::err_context::ErrWithContext<git2::Error>),
 }
 
 pub fn init(cfg: crate::Config) -> Result<(), InitError> {
@@ -17,19 +21,33 @@ pub fn init(cfg: crate::Config) -> Result<(), InitError> {
 
     let bare_root = std::fs::canonicalize(cfg.bare_repo_root())?;
 
-    git2::Repository::init_opts(&bare_root, &git2::RepositoryInitOptions::new().bare(true))?;
+    git2::Repository::init_opts(&bare_root, &git2::RepositoryInitOptions::new().bare(true))
+        .context("Init bare")?;
 
     let bare_url = bare_root.to_str().ok_or(InitError::NonUTF8BarePath)?;
-    if let Ok(dir) = std::fs::File::open(cfg.repo_root()) {
+    let mut repo = if let Ok(dir) = std::fs::File::open(cfg.repo_root()) {
         if dir.metadata().expect("metadata").is_dir() {
-            let repo = git2::Repository::open(cfg.repo_root())?;
-            repo.remote_set_url("origin", bare_url)?;
+            let repo = git2::Repository::open(cfg.repo_root()).context("Open repo")?;
+            repo.remote_set_url("origin", bare_url)
+                .context("Set remote URL")?;
+            repo
         } else {
             return Err(InitError::IndexIsFile);
         }
     } else {
-        git2::Repository::clone(bare_url, cfg.repo_root())?;
-    }
+        git2::Repository::clone(bare_url, cfg.repo_root()).context("Clone")?
+    };
+
+    let config_json = std::fs::File::create(cfg.repo_root().join("config.json"))?;
+    write!(
+        &config_json,
+        r#"{{
+    "dl":"http://localhost:{0}/api/v1/crates/download/{{crate}}/{{version}}",
+    "api": "http://localhost:{0}"
+}}"#,
+        cfg.port()
+    )?;
+    crate::git::push_all(&mut repo)?;
 
     Ok(())
 }

@@ -67,38 +67,7 @@ fn do_publish(cfg: &RuntimeConfig, req: &Request) -> Result<Response, PublishErr
         .context("Open file for crate data")?;
     writeln!(&crate_file, "{}", crate_info).context("Append crate data")?;
 
-    {
-        let repo = cfg.lock_repo();
-        let mut index = repo.index().context("Get index")?;
-        index
-            .add_path(&crate_path.join(&crate_name))
-            .context("Add path")?;
-        index.write().context("Write index")?;
-        let sig = repo.signature().context("Get repo signature")?;
-        repo.commit(
-            Some("HEAD"),
-            &sig,
-            &sig,
-            "",
-            &repo
-                .find_tree(index.write_tree().context("Write index tree")?)
-                .context("Find index tree")?,
-            &[&repo
-                .find_commit(
-                    repo.head()
-                        .context("Get HEAD")?
-                        .target()
-                        .expect("No HEAD ref in repo"),
-                )
-                .context("Get HEAD commit")?],
-        )
-        .context("Commit")?;
-        // FIXME: use push_update_reference callback, as recommended
-        repo.find_remote("origin")
-            .context("Get remote origin")?
-            .push(&["refs/heads/master"], None)
-            .context("Push to origin")?;
-    }
+    crate::git::push_all(&mut cfg.lock_repo())?;
 
     Ok(Response::text(
         r#"{"warnings":{"invalid_categories":[],"invalid_badges":[],"other":[]}}"#,
