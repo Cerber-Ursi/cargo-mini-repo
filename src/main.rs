@@ -2,7 +2,7 @@ use std::{io, path::PathBuf};
 
 use cargo_mini_repo::{CommandError, Config, ConfigError};
 use log::SetLoggerError;
-use structopt::{StructOpt, clap};
+use clap::{self, Parser, IntoApp, Subcommand};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -17,14 +17,14 @@ enum MiniRepoError {
     CommandError(#[from] CommandError),
 }
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
-    #[structopt(long)]
+    #[clap(long)]
     /// Path to the config.toml file.
     cfg: PathBuf,
 }
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum RawCommand {
     /// Initialize the local repository, according to the provided configuration
     Init(Args),
@@ -32,13 +32,13 @@ enum RawCommand {
     Start(Args),
 }
 
-#[derive(StructOpt)]
-#[structopt(about = "Mini-repository for Cargo, intended for local usage")]
+#[derive(Parser)]
+#[clap(about = "Mini-repository for Cargo, intended for local usage")]
 enum Command {
-    #[structopt(flatten)]
+    #[clap(flatten)]
     Raw(RawCommand),
     /// Recursive, to be used from Cargo itself.
-    #[structopt(name = "mini-repo")]
+    #[clap(subcommand, name = "mini-repo")]
     MiniRepo(RawCommand),
 }
 
@@ -54,7 +54,7 @@ fn launch<E: Into<CommandError>>(
 }
 
 fn main() {
-    let cmd = match Command::from_args() {
+    let cmd = match Command::parse() {
         Command::Raw(cmd) => cmd,
         Command::MiniRepo(cmd) => cmd,
     };
@@ -62,9 +62,9 @@ fn main() {
         RawCommand::Init(args) => launch(args, cargo_mini_repo::init),
         RawCommand::Start(args) => launch(args, cargo_mini_repo::start),
     } {
-        clap::Error::with_description(
-            &cargo_mini_repo::traceback(&error),
+        Command::into_app().error(
             clap::ErrorKind::ValueValidation,
+            cargo_mini_repo::traceback(&error),
         )
         .exit();
     }
